@@ -1,0 +1,16 @@
+function res = meanRGB(varargin)
+
+
+if nargin>0
+    res = zeros(size(varargin{1}));
+    tmp = varargin{i};
+    tmp(tmp==0) = max(tmp(:));
+    for i=1:nargin
+        res = res + double(varargin{i});
+    end
+    res = uint8(res./nargin);
+end
+
+
+
+

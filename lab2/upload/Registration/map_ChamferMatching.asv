@@ -1,0 +1,59 @@
+close all
+% clear
+
+A = imread('01.png');
+B = imread('02.png');
+C = imread('03.png');
+
+orig_size = size(A);
+new_size = [200 200];
+sf = orig_size(1:2)./new_size;
+%
+% a = imresize(A,new_size,'bilinear');
+% b = imresize(B,new_size,'bilinear');
+% c = imresize(C,new_size,'bilinear');
+
+a_gray = rgb2gray(A);
+b_gray = rgb2gray(B);
+c_gray = rgb2gray(C);
+
+t1 = 0.1;
+t2 = 0.2;
+sigma = 0.3; % >=1
+a_edge = edge(a_gray,'canny',[t1 t2],sigma);
+b_edge = edge(b_gray,'canny',[t1 t2],sigma);
+c_edge = edge(c_gray,'canny',[t1 t2],sigma);
+
+base_image = padarray(bwdist(a_edge,'euclidean'),size(a_edge),0);
+floating_image = padarray(b_edge,size(b_edge),0);
+floating_image2 = padarray(c_edge,size(c_edge),0);
+
+angle_interval = [-10,-5,5,10];
+row_step = 20;
+col_step = 20;
+scale_space_no = 2;
+
+[trans_rot_seq1,scores1] = chamfermatch(base_image,floating_image,angle_interval,row_step,col_step,scale_space_no);
+[trans_rot_seq2,scores2] = chamfermatch(base_image,floating_image2,angle_interval,row_step,col_step,scale_space_no);
+
+[~,best_score1]=min(scores1);
+[~,best_score2]=min(scores2);
+
+tmp_image1 = imrotate(padarray(B,[size(B,1),size(B,2)],0),trans_rot_seq1(best_score1,3),'nearest','crop');
+tmp_image1 = imtranslate(tmp_image1,trans_rot_seq1(best_score1,1),trans_rot_seq1(best_score1,2));
+
+tmp_image2 = imrotate(padarray(C,[size(C,1),size(C,2)],0),trans_rot_seq2(best_score2,3),'nearest','crop');
+tmp_image2 = imtranslate(tmp_image2,trans_rot_seq2(best_score2,1),trans_rot_seq2(best_score2,2));
+
+rgb = meanRGB(padarray(A,[size(A,1),size(A,2)],0),tmp_image1,tmp_image2);
+
+[ind_r ind_c] = ind2sub(size(rgb(:,:,1)),find(rgb(:,:,1)>0)); 
+
+rgb_crop = rgb(min(ind_r):max(ind_r),min(ind_c):max(ind_c),:);
+
+figure;imshow(rgb_crop);
+
+disp('Done!')
+
+tmp_image2 = imrotate(padarray(C,[size(C,1),size(C,2)],0),trans_rot_seq2(best_score2,3),'nearest','crop');
+tmp_image2 = imtranslate(tmp_image2,trans_rot_seq2(best_score2,1),trans_rot_seq2(best_score2,2));

@@ -1,0 +1,42 @@
+% IMTRANSLATE
+% 
+% b = imtranslate(a,dr,dc)
+% 
+%  a: Input image
+% dr: Change in rows
+% dc: Change in columns
+%  b: Translated image, same size as a
+% 
+% Description: imtranslate translates the contents of the image according
+% to dr, dc. 
+
+function b = imtranslate(a,dr,dc)
+
+sz = size(a);
+b = zeros(sz);
+ 
+if length(sz) > 2
+    if dr <= 0 && dc <= 0
+        b(1:end+dr,1:end+dc,:) = a(1-dr:end,1-dc:end,:);
+    elseif dr > 0 && dc > 0
+        b(1+dr:end,1+dc:end,:) = a(1:end-dr,1:end-dc,:);
+    elseif dr > 0 && dc <= 0
+        b(1+dr:end,1:end+dc,:) = a(1:end-dr,1-dc:end,:);
+    elseif dr <= 0 && dc > 0
+        b(1:end+dr,1+dc:end,:) = a(1-dr:end,1:end-dc,:);
+    end
+else
+    if dr <= 0 && dc <= 0
+        b(1:end+dr,1:end+dc) = a(1-dr:end,1-dc:end);
+    elseif dr > 0 && dc > 0
+        b(1+dr:end,1+dc:end) = a(1:end-dr,1:end-dc);
+    elseif dr > 0 && dc <= 0
+        b(1+dr:end,1:end+dc) = a(1:end-dr,1-dc:end);
+    elseif dr <= 0 && dc > 0
+        b(1:end+dr,1+dc:end) = a(1-dr:end,1:end-dc);
+    end
+end
+
+
+
+
