@@ -59,6 +59,7 @@ translation_directions = [
 rot_size = 20;
 number_of_rots = 10;
 rotation_directions = -rot_size:rot_size/number_of_rots:rot_size;
+rotation_directions = fliplr(rotation_directions);
 
 %% now pad the images to make room to manouver
 baseDT = padarray(baseDT, size(baseDT), max(baseDT(:)));
@@ -78,8 +79,13 @@ while ~stop
     top_image = img2_edge;
     scores = zeros(size(translation_directions, 1), 1);
     
+    for i = 1 : size(rotation_directions, 1)
+        tmp_image = circshift(img2_edge, rotation_directions(i,:));
+        scores(i) = sum(baseDT(logical(tmp_image)));
+    end
+    
     for i = 1 : size(translation_directions, 1)
-        tmp_image = circshift(img2_edge, translation_directions(i,:));
+        tmp_image = circshift(tmp_image, translation_directions(i,:));
         
         scores(i) = sum(baseDT(logical(tmp_image)));
     end
@@ -90,9 +96,9 @@ while ~stop
         stop = true;
         accumulated_scores(end+1) = best_score;
     else
-        img2_edge = imrotate(img2_edge,rotation_directions(x),'bilinear','crop');
+        img2_edge = imrotate(img2_edge,rotation_directions(dir),'bilinear','crop');
         img2_edge = imtranslate(img2_edge, translation_directions(dir, 1), translation_directions(dir, 2));
-        backwards = mod(dir+1, 4) + 1;
+        %backwards = mod(dir+1, 4) + 1;
         last_score = best_score;
         accumulated_scores(end+1) = best_score;
     end
@@ -102,18 +108,25 @@ while ~stop
     imshow(edgeRGBoverlay(baseDT, img2_edge,'red'),[])
     title(['Floating image position for iteration ' num2str(counter)])
     counter = counter + 1;
+
     
 
 end
 
-subplot(337);
+figure;
+imshow(meanRGB(orig, img2_edge));
+title('TEST');
+
+%subplot(337);
+figure;
 plot(accumulated_scores, 'r');
 title('Positional scores');
 ylabel('Scores');
 xlabel('Iterations');
 
 %% show merged result
-subplot(338);
+%subplot(338);
+figure;
 imshow(meanRGB(orig,img2));
 title('Images 01, 02 & 03 merged');
 
