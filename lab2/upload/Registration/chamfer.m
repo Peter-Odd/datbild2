@@ -47,23 +47,30 @@ imshow(baseDT,[]);
 title('DT of base image');
 
 %% specify the directions that will be used for
-step = 3;
+step = 40;
 translation_directions = [
                             0      -step;
                             -step  0;
                             0      step;
-                            step   0 
+                            step   0;
+                            0      -step/2;
+                            -step/2  0;
+                            0      step/2;
+                            step/2   0;
                           ];
 
 %% specify the rotations that will be used for
-rot_size = 20;
-number_of_rots = 10;
-rotation_directions = -rot_size:rot_size/number_of_rots:rot_size;
-rotation_directions = fliplr(rotation_directions);
+rot_size = 10;
+number_of_rots = 4;
+number_of_rots = number_of_rots-1;
+rotation_directions = -rot_size:rot_size/number_of_rots*2:rot_size
+%rotation_directions = fliplr(rotation_directions);
 
 %% now pad the images to make room to manouver
-baseDT = padarray(baseDT, size(baseDT), max(baseDT(:)));
+baseDT = padarray(baseDT, size(baseDT), 0);%max(baseDT(:)));
 img2_edge = padarray(img2_edge, size(img2_edge), 0);
+base_show = padarray(base_edge, size(base_edge), 0);
+
 
 
 %% chamfermatching!
@@ -73,51 +80,79 @@ backwards = 0;
 accumulated_scores = [];
 counter = 1;
 len = length(orig(:,1,1));
-visitedCoords = zeros(len,len,rot_size*number_of_rots);
+visitedCoords = zeros(len,len,number_of_rots);
+accumulator_index = 0;
+acc_rot = 0;
+acc_dir = [0 0];
+prev_dir = [inf inf]
 
 while ~stop
     top_image = img2_edge;
-    scores = zeros(size(translation_directions, 1), 1);
-    
-    for i = 1 : size(rotation_directions, 1)
-        tmp_image = circshift(img2_edge, rotation_directions(i,:));
-        scores(i) = sum(baseDT(logical(tmp_image)));
-    end
+    scores = zeros(size(translation_directions, 1), number_of_rots); 
     
     for i = 1 : size(translation_directions, 1)
-        tmp_image = circshift(tmp_image, translation_directions(i,:));
+        tmp_image_ = circshift(img2_edge, translation_directions(i,:));
+        for(j = 1:length(rotation_directions))
+            tmp_image = imrotate(tmp_image_,rotation_directions(j),'bilinear','crop');
+            scores(i,j)=sum(baseDT(logical(tmp_image)));
+            %scores(i,j) = sum((baseDT(:)-not(logical(tmp_image(:))).*70).^2);%sum(baseDT(logical(tmp_image)));
+        end
+    end
         
-        scores(i) = sum(baseDT(logical(tmp_image)));
-    end
-    
-    [best_score, dir] = min(scores);
+    %[best_score, dir] = min(scores);
 
-    if best_score > last_score %|| dir == backwards
-        stop = true;
-        accumulated_scores(end+1) = best_score;
-    else
-        img2_edge = imrotate(img2_edge,rotation_directions(dir),'bilinear','crop');
-        img2_edge = imtranslate(img2_edge, translation_directions(dir, 1), translation_directions(dir, 2));
-        %backwards = mod(dir+1, 4) + 1;
-        last_score = best_score;
-        accumulated_scores(end+1) = best_score;
-    end
-   
+    %[best_translation_dir,best_rotation_dir,best_score] = find(scores == min(scores(:)))
+    [best_translation_dir,best_rotation_dir] = find(scores == min(scores(:)));
+    best_score = min(min(scores));
+    acc_rot = acc_rot + rotation_directions(best_rotation_dir)
+    acc_dir = acc_dir + translation_directions(best_translation_dir,:)
+    curr_dir = translation_directions(best_translation_dir,:);
     
-    subplot(336);
-    imshow(edgeRGBoverlay(baseDT, img2_edge,'red'),[])
+    
+    
+    if (counter > inf || sum(curr_dir == -prev_dir) > 1)
+        stop = true;
+        accumulated_scores(accumulator_index+1) = best_score;        
+    else
+        img2_gray = rgb2gray(img2);
+        img2_edge = edge(img2_gray, 'canny', [t1 t2], sigma);
+        
+        img2_edge = padarray(img2_edge, size(img2_edge), 0);
+        img2_edge = imrotate(img2_edge,acc_rot, 'bilinear','crop');
+        img2_edge = imtranslate(img2_edge,  ...
+        acc_dir(1), acc_dir(2));
+                
+        last_score = best_score;
+        accumulated_scores(accumulator_index+1) = best_score;
+        accumulator_index = accumulator_index + 1;
+
+    end
+    
+    prev_dir = translation_directions(best_translation_dir,:);
+            
+    l1 = length(base_edge(1,:));
+    l2 = length(base_edge(:,1));
+    start = 200;
+    figure(2)
+    imshow(edgeRGBoverlay(base_show,img2_edge,'red'),[])
     title(['Floating image position for iteration ' num2str(counter)])
+    
+    %subplot(336);
+    %imshow(edgeRGBoverlay(baseDT, img2_edge,'red'),[])
+    %title(['Floating image position for iteration ' num2str(counter)])
     counter = counter + 1;
 
-    
+%subplot(338);
+%figure;
+%imshow(meanRGB(orig,img2),[]);
+%title('Images 01, 02 & 03 merged');
 
 end
+    img2 = imrotate(img2, acc_rot,'bilinear','crop');
+    img2 = imtranslate(img2,  ...
+    acc_dir(1), acc_dir(2));
 
-figure;
-imshow(meanRGB(orig, img2_edge));
-title('TEST');
-
-%subplot(337);
+subplot(337);
 figure;
 plot(accumulated_scores, 'r');
 title('Positional scores');
@@ -125,7 +160,7 @@ ylabel('Scores');
 xlabel('Iterations');
 
 %% show merged result
-%subplot(338);
+subplot(338);
 figure;
 imshow(meanRGB(orig,img2));
 title('Images 01, 02 & 03 merged');
