@@ -17,7 +17,7 @@ function [movmat,fps] = read_movie(filename,startframe,endframe)
 % Written by: Gustaf Kylberg och Patrik Malm, Dec. 2010, Matlab 2009R
 
 % Create video object
-vidObj = mmreader(filename);
+vidObj = VideoReader(filename);
 
 % Get video metadata
 vidInf = mmfileinfo(filename);
