@@ -1,33 +1,48 @@
-    function [cols, rows, coords] = find_closest_worms(coords,worm_coords)
-        %worm_coords = [10, 10;20,20;30,30];
+    function [new_coords_] = find_closest_worms(new_coords,old_coords,index)
   
-        
-   %worm_coords=[202.0345 , 367.9655;  334.3824,  405.7941;  374.2083 , 403.6667];
-  
+     old_coords=[379.6327  ,109.4286;  476.3158  ,198.1316;  301.7273  ,410.9091];
 
-worm_coords=[1, 1;
-  5,  5;
-  20, 20];
+     new_coords= [    290.0690  ,410.0345;  402.2353  ,119.5882;  479.6522  ,214.0000];
   
-
-  coords = [0,1;20,20;5,8];
-  
-  
-        new_coords = worm_coords;
-        distances = zeros(1,3);
-        for(i = 1 : length(coords(:,1)))  
-            for(j = 1 : length(worm_coords(:,1)))                
-                distances(j,i) = sqrt(sum(coords(j,:)-worm_coords(i,:)).^2); % Euclidean distance from coord j to worm_coord i
+        distances = zeros(3,3);
+        for(new_i = 1 : length(new_coords(:,1)))  
+            for(old_i = 1 : length(old_coords(:,1)))                
+                distances(old_i,new_i) = sqrt(sum(new_coords(old_i,:)-old_coords(new_i,:)).^2); % Euclidean distance from old_coord to new_coord
             end
         end
         
         
 
         distances_ = distances;
-        
+           
 for(i = 1:3)        
     [min_val,idx]=min(distances(:));
-    [rows(i),cols(i)]=ind2sub(size(distances),idx);
-    distances(rows(i),:) = inf;
+    [from,to]=ind2sub(size(distances),idx);
+    distances(from,:) = inf;
+    new_coords_(to,:) = new_coords(from,:);
 end
-    end
+
+
+if(index == 51)
+    old_coords
+    new_coords    
+    new_coords_
+    distances_
+    distances
+    from
+    to
+ end
+
+
+% new_coords =
+% 
+%   290.0690  410.0345
+%   402.2353  119.5882
+%   479.6522  214.0000
+% 
+% 
+% old_coords =
+% 
+%   379.6327  109.4286
+%   476.3158  198.1316
+%   301.7273  410.9091
